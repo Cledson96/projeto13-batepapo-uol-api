@@ -77,7 +77,7 @@ app.post("/messages", async (req, res) => {
     if (validation.error || valida) {
         res.status(422).send("Erro no envio");
         return
-    }
+    }aa
 })
 
 
