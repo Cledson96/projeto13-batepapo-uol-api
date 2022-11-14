@@ -7,6 +7,7 @@ import dayjs from "dayjs";
 
 const app = express();
 app.use(express.json());
+app.use(cors());
 const mongoClient = new MongoClient("mongodb://localhost:27017");
 let db;
 let usuarios;
@@ -61,13 +62,18 @@ app.get("/participants", async (req, res) => {
 
 app.post("/messages", async (req, res) => {
     const body = req.body;
+    if(!req.headers.user){
+        res.status(422).send("Obrigatório mandar o user no headers");
+    }
+
     let valida
     if (body.type == "message" || body.type == "private_message") {
         valida = false;
     } else {
         valida = true;
+        console.log(from)
+        console.log(body)
     }
-    const from = req.headers.users
     const messageSchema = joi.object({
         to: joi.string().required().min(1).max(100),
         text: joi.string().required(),
@@ -77,7 +83,17 @@ app.post("/messages", async (req, res) => {
     if (validation.error || valida) {
         res.status(422).send("Erro no envio");
         return
-    }aa
+    }
+    try {
+        await db.collection("message").insertOne({ from:req.headers.user,to: req.body.to, text: req.body.text, type: req.body.type, lastStatus: dayjs().format("HH:mm:ss") });
+        res.status(201).send("pk");
+        console.log(req.headers.user)
+        return
+    } catch (err) {
+        res.status(500).send(err);
+        return
+    }
+
 })
 
 
