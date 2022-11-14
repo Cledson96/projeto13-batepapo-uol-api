@@ -4,6 +4,8 @@ import { MongoClient } from "mongodb";
 import dotenv from "dotenv";
 import joi from "joi";
 import dayjs from "dayjs";
+import { stripHtml } from "string-strip-html";
+
 
 dotenv.config();
 const app = express();
@@ -24,6 +26,10 @@ mongoClient.connect().then(() => {
 
 app.post("/participants", async (req, res) => {
     const body = req.body;
+    let namelimpo = stripHtml(body.name).result
+    let fromlimpo = stripHtml(body.name).result
+    console.log(body.name);
+    console.log(stripHtml(body.name).result);
 
     usuarios = await db.collection("usuarios").find({}).toArray();
 
@@ -45,8 +51,8 @@ app.post("/participants", async (req, res) => {
         return
     }
     try {
-        await db.collection("usuarios").insertOne({ name: req.body.name, lastStatus: Date.now() });
-        await db.collection("message").insertOne({ from: req.body.name, to: "Todos", text: 'entra na sala...', type: 'status', time: dayjs().format("HH:mm:ss") });
+        await db.collection("usuarios").insertOne({ name: namelimpo, lastStatus: Date.now() });
+        await db.collection("message").insertOne({ from: fromlimpo, to: "Todos", text: 'entra na sala...', type: 'status', time: dayjs().format("HH:mm:ss") });
 
         res.status(201).send("usuario cadastrado com sucesso!");
     } catch (err) {
@@ -55,29 +61,28 @@ app.post("/participants", async (req, res) => {
 
 })
 
-setInterval( async remove =>{
+setInterval(async remove => {
     usuarios = await db.collection("usuarios").find({}).toArray();
-    
-    for (let i = 0;i < usuarios.length;i++){
-        console.log(Math.abs(Date.now() - usuarios[i].lastStatus))
-        if (Math.abs(Date.now() - usuarios[i].lastStatus) > 10000){
-            
-            try{
-                
-                await db.collection("usuarios").deleteOne({ _id: usuarios[i]._id  });
+
+    for (let i = 0; i < usuarios.length; i++) {
+        if (Math.abs(Date.now() - usuarios[i].lastStatus) > 10000) {
+
+            try {
+
+                await db.collection("usuarios").deleteOne({ _id: usuarios[i]._id });
                 await db.collection("message").insertOne({ from: usuarios[i].name, to: "Todos", text: 'sai da sala...', type: 'status', time: dayjs().format("HH:mm:ss") });
-               
+
             }
             catch (err) {
-              
+
             }
-    
+
         }
     }
-    
-       
-    
-},15000)
+
+
+
+}, 15000)
 app.get("/participants", async (req, res) => {
 
     res.send(await db.collection("usuarios").find({}).toArray());
@@ -87,7 +92,10 @@ app.get("/participants", async (req, res) => {
 
 app.post("/messages", async (req, res) => {
     const body = req.body;
-    if(!req.headers.user){
+    let textlimpo = stripHtml(body.text).result
+    console.log(textlimpo);
+    console.log(body.text);
+    if (!req.headers.user) {
         res.status(422).send("Obrigatório mandar o user no headers");
     }
 
@@ -110,7 +118,7 @@ app.post("/messages", async (req, res) => {
         return
     }
     try {
-        await db.collection("message").insertOne({ from:req.headers.user,to: req.body.to, text: req.body.text, type: req.body.type, lastStatus: dayjs().format("HH:mm:ss") });
+        await db.collection("message").insertOne({ from: req.headers.user, to: req.body.to, text: textlimpo, type: req.body.type, lastStatus: dayjs().format("HH:mm:ss") });
         res.status(201).send("ok");
         console.log(req.headers.user)
         return
@@ -126,16 +134,16 @@ app.get("/messages", async (req, res) => {
     const mensagens = await db.collection("message").find({}).toArray()
     const limit = parseInt(req.query.limit);
     console.log(limit)
-    
-    let envio= [];
+
+    let envio = [];
     mensagens.map(ref => {
-        if (ref.to == req.headers.user || ref.type == "message" || ref.type == "status"){
-    envio.push(ref)
+        if (ref.to == req.headers.user || ref.type == "message" || ref.type == "status") {
+            envio.push(ref)
         }
-    
+
 
     })
-    if (limit && limit < envio.length){
+    if (limit && limit < envio.length) {
         res.send(envio.slice(envio.length - limit))
         return
     }
@@ -143,24 +151,24 @@ app.get("/messages", async (req, res) => {
 
 })
 
-app.post("/status",async (req,res) => {
-let usuario = req.headers.user
-let usuari = await db.collection("usuarios").find({}).toArray();
-const verificador = usuari.find(verifica => verifica.name === req.headers.user)
-if (!verificador){
-    res.status(404).send("Usuario não encontrado")
-    console.log(usuari)
-    return
-}
+app.post("/status", async (req, res) => {
+    let usuario = req.headers.user
+    let usuari = await db.collection("usuarios").find({}).toArray();
+    const verificador = usuari.find(verifica => verifica.name === req.headers.user)
+    if (!verificador) {
+        res.status(404).send("Usuario não encontrado")
+        console.log(usuari)
+        return
+    }
 
-try {
-    await db.collection("usuarios").updateOne({ _id: verificador._id }, { $set: {lastStatus: Date.now()} });
+    try {
+        await db.collection("usuarios").updateOne({ _id: verificador._id }, { $set: { lastStatus: Date.now() } });
 
-    res.status(200).send("Atualizado!");
-  } catch (err) {
-    console.log(err);
-    res.sendStatus(500);
-  }
+        res.status(200).send("Atualizado!");
+    } catch (err) {
+        console.log(err);
+        res.sendStatus(500);
+    }
 
 
 
