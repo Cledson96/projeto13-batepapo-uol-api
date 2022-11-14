@@ -97,6 +97,28 @@ app.post("/messages", async (req, res) => {
 })
 
 
+app.get("/messages", async (req, res) => {
+    const mensagens = await db.collection("message").find({}).toArray()
+    const limit = parseInt(req.query.limit);
+    console.log(limit)
+    
+    let envio= [];
+    mensagens.map(ref => {
+        if (ref.to == req.headers.user || ref.type == "message"){
+    envio.push(ref)
+        }
+    
+
+    })
+    if (limit && limit < envio.length){
+        res.send(envio.slice(envio.length - limit))
+        return
+    }
+    res.send(envio);
+
+})
+
+
 
 
 app.listen(5000, () => {
