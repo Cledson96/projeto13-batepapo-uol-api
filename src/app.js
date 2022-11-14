@@ -102,8 +102,6 @@ app.post("/messages", async (req, res) => {
         valida = false;
     } else {
         valida = true;
-        console.log(from)
-        console.log(body)
     }
     const messageSchema = joi.object({
         to: joi.string().required().min(1).max(100),
@@ -174,11 +172,11 @@ app.post("/status", async (req, res) => {
 app.delete("/messages/:ID_DA_MENSAGEM", async (req, res) => {
     let user = req.headers.user;
     let { ID_DA_MENSAGEM } = req.params;
-    
+
     try {
         let mensage = await db.collection("message").findOne({ _id: new ObjectId(ID_DA_MENSAGEM) });
         console.log(mensage);
-  
+
         if (!mensage) {
             res.status(404).send("erro")
             return
@@ -188,20 +186,71 @@ app.delete("/messages/:ID_DA_MENSAGEM", async (req, res) => {
             return
         }
         const resp = await db
-          .collection("message")
-          .deleteOne({ _id: ObjectId(ID_DA_MENSAGEM) });
-    
+            .collection("message")
+            .deleteOne({ _id: ObjectId(ID_DA_MENSAGEM) });
+
         console.log(resp);
         res.send("Mensagem apagada com sucesso!");
-      } catch (err) {
+    } catch (err) {
         console.log(err);
         res.sendStatus(404);
-      }
-
+    }
 
 })
+app.put("/messages/:ID_DA_MENSAGEM", async (req, res) => {
+    let { ID_DA_MENSAGEM } = req.params;
+    let body = req.body;
+    let from = req.headers.user
+   let usu = await db.collection("usuarios").find({}).toArray();
+   let usua = false;
 
+   for(let i = 0;i<usu.length;i++){
+    if (usu[i] == from){
+        usua = true;
+    }
+   }
+    const messageSchema = joi.object({
+        to: joi.string().required().min(1).max(100),
+        text: joi.string().required(),
+        type: joi.string().required(),
+    });
+    let valida
+    if (body.type == "message" || body.type == "private_message") {
+        valida = false;
+    } else {
+        valida = true;
+    }
 
+    const validation = messageSchema.validate(body, { abortEarly: false });
+    if (validation.error || valida || !usua) {
+        res.status(422).send("Erro no envio");
+        return
+    }
+    try {
+        let mensage = await db.collection("message").findOne({ _id: new ObjectId(ID_DA_MENSAGEM) });
+        console.log(mensage);
+
+        if (!mensage) {
+            res.status(404).send("erro")
+            return
+        }
+        if (mensage.from != from){
+            res.status(401).send("erro")
+            return
+        }
+        
+        const resp = await db
+            .collection("message")
+            .updateOne({ _id: ObjectId(ID_DA_MENSAGEM) },{ $set: body.message });
+
+        console.log(resp);
+        res.send("Mensagem atualizada com sucesso!");
+    } catch (err) {
+        console.log(err);
+        res.sendStatus(404);
+    }
+
+})
 app.listen(5000, () => {
     console.log(`Server running in port: ${5000}`);
 });
