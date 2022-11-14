@@ -80,7 +80,7 @@ setInterval(async remove => {
 
 
 
-}, 1005000)
+}, 15000)
 app.get("/participants", async (req, res) => {
 
     res.send(await db.collection("usuarios").find({}).toArray());
