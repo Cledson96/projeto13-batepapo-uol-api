@@ -1,6 +1,6 @@
 import express from "express"
 import cors from "cors"
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import dotenv from "dotenv";
 import joi from "joi";
 import dayjs from "dayjs";
@@ -28,8 +28,6 @@ app.post("/participants", async (req, res) => {
     const body = req.body;
     let namelimpo = stripHtml(body.name).result
     let fromlimpo = stripHtml(body.name).result
-    console.log(body.name);
-    console.log(stripHtml(body.name).result);
 
     usuarios = await db.collection("usuarios").find({}).toArray();
 
@@ -152,7 +150,6 @@ app.get("/messages", async (req, res) => {
 })
 
 app.post("/status", async (req, res) => {
-    let usuario = req.headers.user
     let usuari = await db.collection("usuarios").find({}).toArray();
     const verificador = usuari.find(verifica => verifica.name === req.headers.user)
     if (!verificador) {
@@ -174,7 +171,35 @@ app.post("/status", async (req, res) => {
 
 })
 
+app.delete("/messages/:ID_DA_MENSAGEM", async (req, res) => {
+    let user = req.headers.user;
+    let { ID_DA_MENSAGEM } = req.params;
+    
+    try {
+        let mensage = await db.collection("message").findOne({ _id: new ObjectId(ID_DA_MENSAGEM) });
+        console.log(mensage);
+  
+        if (!mensage) {
+            res.status(404).send("erro")
+            return
+        }
+        if (mensage.from != user) {
+            res.status(401).send("erro")
+            return
+        }
+        const resp = await db
+          .collection("message")
+          .deleteOne({ _id: ObjectId(ID_DA_MENSAGEM) });
+    
+        console.log(resp);
+        res.send("Mensagem apagada com sucesso!");
+      } catch (err) {
+        console.log(err);
+        res.sendStatus(404);
+      }
 
+
+})
 
 
 app.listen(5000, () => {
