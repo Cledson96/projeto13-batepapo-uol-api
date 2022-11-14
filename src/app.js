@@ -53,6 +53,29 @@ app.post("/participants", async (req, res) => {
 
 })
 
+setInterval( async remove =>{
+    usuarios = await db.collection("usuarios").find({}).toArray();
+    
+    for (let i = 0;i < usuarios.length;i++){
+        console.log(Math.abs(Date.now() - usuarios[i].lastStatus))
+        if (Math.abs(Date.now() - usuarios[i].lastStatus) > 10000){
+            
+            try{
+                
+                await db.collection("usuarios").deleteOne({ _id: usuarios[i]._id  });
+                await db.collection("message").insertOne({ from: usuarios[i].name, to: "Todos", text: 'sai da sala...', type: 'status', time: dayjs().format("HH:mm:ss") });
+               
+            }
+            catch (err) {
+              
+            }
+    
+        }
+    }
+    
+       
+    
+},15000)
 app.get("/participants", async (req, res) => {
 
     res.send(await db.collection("usuarios").find({}).toArray());
@@ -86,7 +109,7 @@ app.post("/messages", async (req, res) => {
     }
     try {
         await db.collection("message").insertOne({ from:req.headers.user,to: req.body.to, text: req.body.text, type: req.body.type, lastStatus: dayjs().format("HH:mm:ss") });
-        res.status(201).send("pk");
+        res.status(201).send("ok");
         console.log(req.headers.user)
         return
     } catch (err) {
@@ -104,7 +127,7 @@ app.get("/messages", async (req, res) => {
     
     let envio= [];
     mensagens.map(ref => {
-        if (ref.to == req.headers.user || ref.type == "message"){
+        if (ref.to == req.headers.user || ref.type == "message" || ref.type == "status"){
     envio.push(ref)
         }
     
@@ -115,6 +138,29 @@ app.get("/messages", async (req, res) => {
         return
     }
     res.send(envio);
+
+})
+
+app.post("/status",async (req,res) => {
+let usuario = req.headers.user
+let usuari = await db.collection("usuarios").find({}).toArray();
+const verificador = usuari.find(verifica => verifica.name === req.headers.user)
+if (!verificador){
+    res.status(404).send("Usuario não encontrado")
+    console.log(usuari)
+    return
+}
+
+try {
+    await db.collection("usuarios").updateOne({ _id: verificador._id }, { $set: {lastStatus: Date.now()} });
+
+    res.status(200).send("Atualizado!");
+  } catch (err) {
+    console.log(err);
+    res.sendStatus(500);
+  }
+
+
 
 })
 
