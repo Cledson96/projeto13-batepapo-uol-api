@@ -80,7 +80,7 @@ setInterval(async remove => {
 
 
 
-}, 15000)
+}, 1005000)
 app.get("/participants", async (req, res) => {
 
     res.send(await db.collection("usuarios").find({}).toArray());
@@ -222,8 +222,11 @@ app.put("/messages/:ID_DA_MENSAGEM", async (req, res) => {
     }
 
     const validation = messageSchema.validate(body, { abortEarly: false });
-    if (validation.error || valida || !usua) {
+    if (validation.error || valida || usua) {
         res.status(422).send("Erro no envio");
+        console.log(!usua)
+        console.log(validation.error)
+        console.log(valida)
         return
     }
     try {
@@ -241,7 +244,7 @@ app.put("/messages/:ID_DA_MENSAGEM", async (req, res) => {
         
         const resp = await db
             .collection("message")
-            .updateOne({ _id: ObjectId(ID_DA_MENSAGEM) },{ $set: body.message });
+            .updateOne({ _id: ObjectId(ID_DA_MENSAGEM) },{ $set: req.body.text });
 
         console.log(resp);
         res.send("Mensagem atualizada com sucesso!");
